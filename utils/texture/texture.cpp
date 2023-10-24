@@ -8,12 +8,10 @@
 
 void Texture::setupTexture(const char* texturePath)
 {
-	std::cout << "INF: Loading texture " << texturePath << std::endl;
-    // tell stb_image.h to flip loaded texture's on the y-axis.
-	stbi_set_flip_vertically_on_load(true);
-	// load the texture data into "data"
-	unsigned char* data = stbi_load(texturePath, &_width, &_height, &_bpp, 0);
-	GLenum format=3;
+	std::cout << "INF: Loading texture " << texturePath << "..." << std::endl;
+	stbi_set_flip_vertically_on_load(true);  /* Tell stb_image.h to flip loaded texture's on the y-axis */
+	unsigned char* data = stbi_load(texturePath, &_width, &_height, &_bpp, 0);  /* Load the texture data into "data" */
+	GLenum format = 3;
 	switch (_bpp) {
 		case 1: format = GL_RED; break;
 		case 3: format = GL_RGB; break;
@@ -23,10 +21,10 @@ void Texture::setupTexture(const char* texturePath)
 	glGenTextures(1, &_ID);
 	glBindTexture(GL_TEXTURE_2D, _ID);
 
-	// set the texture wrapping parameters
+	/* Set texture wrapping parameters */
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
+	/* Set texture filtering parameters */
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -67,13 +65,11 @@ void Texture::setupTextureCubemap(const std::vector<std::string>& texPaths)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    // tell stb_image.h to flip loaded texture's on the y-axis.
-	stbi_set_flip_vertically_on_load(true);
-
+	stbi_set_flip_vertically_on_load(false);  /* Tell stb_image.h to flip loaded texture's on the y-axis */
     for (unsigned int i = 0; i < texPaths.size(); i++) {
-        std::cout << "INF: Loading cubemap " << texPaths[i] << std::endl;
+        std::cout << "INF: Loading cubemap " << texPaths[i] << "..." << std::endl;
         unsigned char *data = stbi_load(texPaths[i].c_str(), &_width, &_height, &_bpp, 0);
-        GLenum format=3;
+        GLenum format = 3;
 	    switch (_bpp) {
 		    case 1: format = GL_RED; break;
             case 3: format = GL_RGB; break;
@@ -101,7 +97,18 @@ void Texture::bind(unsigned int slot) const
 	glBindTexture(GL_TEXTURE_2D, _ID);
 }
 
-void Texture::unbind() const
+void Texture::bindCubemap(unsigned int slot) const
+{
+	glActiveTexture(GL_TEXTURE0 + slot);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, _ID);
+}
+
+void Texture::unbind(void) const
 {
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Texture::unbindCubemap(void) const
+{
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }

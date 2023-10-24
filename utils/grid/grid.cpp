@@ -2,7 +2,6 @@
 
 #include "glm/gtc/matrix_transform.hpp"
 
-#include "camera/camera.h"
 #include "misc/misc.h"
 
 #include <iostream>
@@ -29,50 +28,50 @@ void Grid::sendGridsToOpenGL(void)
     int i, j;
 
     /* Origin */
-    const GLfloat origin[] = {
+    const GLfloat originVertices[] = {
         0.0f, 0.0f, 0.0f, R(0), G(255), B(255),
     };
     const GLuint originIndices[] = {0};
-    _sendGrid(_GRID_ORIGIN, &vboID, &eboID, origin, sizeof(origin), originIndices, sizeof(originIndices));
+    _sendGrid(_GRID_ORIGIN, &vboID, &eboID, originVertices, sizeof(originVertices), originIndices, sizeof(originIndices));
     
     /* x-axis */
-    const GLfloat xAxis[] = {
+    const GLfloat xAxisVertices[] = {
          1.0f, 0.0f, 0.0f, R(255), G(0), B(0),
         -1.0f, 0.0f, 0.0f, R(255), G(0), B(0),
     };
     const GLuint xAxisIndices[] = {0, 1};
-    _sendGrid(_GRID_X_AXIS, &vboID, &eboID, xAxis, sizeof(xAxis), xAxisIndices, sizeof(xAxisIndices));
+    _sendGrid(_GRID_X_AXIS, &vboID, &eboID, xAxisVertices, sizeof(xAxisVertices), xAxisIndices, sizeof(xAxisIndices));
     
     /* y-axis */
-    const GLfloat yAxis[] = {
+    const GLfloat yAxisVertices[] = {
         0.0f,  1.0f, 0.0f, R(0), G(255), B(0),
         0.0f, -1.0f, 0.0f, R(0), G(255), B(0),
     };
     const GLuint yAxisIndices[] = {0, 1};
-    _sendGrid(_GRID_Y_AXIS, &vboID, &eboID, yAxis, sizeof(yAxis), yAxisIndices, sizeof(yAxisIndices));
+    _sendGrid(_GRID_Y_AXIS, &vboID, &eboID, yAxisVertices, sizeof(yAxisVertices), yAxisIndices, sizeof(yAxisIndices));
     
     /* z-axis */
-    const GLfloat zAxis[] = {
+    const GLfloat zAxisVertices[] = {
         0.0f, 0.0f,  1.0f, R(0), G(0), B(255),
         0.0f, 0.0f, -1.0f, R(0), G(0), B(255),
     };
     const GLuint zAxisIndices[] = {0, 1};
-    _sendGrid(_GRID_Z_AXIS, &vboID, &eboID, zAxis, sizeof(zAxis), zAxisIndices, sizeof(zAxisIndices));
+    _sendGrid(_GRID_Z_AXIS, &vboID, &eboID, zAxisVertices, sizeof(zAxisVertices), zAxisIndices, sizeof(zAxisIndices));
     
     /* Squares */
     const GLint n_side_edges    = static_cast<GLint>(_far) << 1;
     const GLint n_side_vertices = n_side_edges + 1;
     GLint starting_idx, half;
-    GLfloat squares[n_side_vertices * n_side_vertices * 6];
+    GLfloat squareVertices[n_side_vertices * n_side_vertices * 6];
     for (i = 0; i <= n_side_edges; i++) {
         for (j = 0; j <= n_side_edges; j++) {
             starting_idx = (i * n_side_vertices + j) * 6;
-            squares[starting_idx + 0] = static_cast<GLfloat>(i);
-            squares[starting_idx + 1] = 0.0f;
-            squares[starting_idx + 2] = static_cast<GLfloat>(j);
-            squares[starting_idx + 3] = R(255);
-            squares[starting_idx + 4] = G(255);
-            squares[starting_idx + 5] = B(255);
+            squareVertices[starting_idx + 0] = static_cast<GLfloat>(i);
+            squareVertices[starting_idx + 1] = 0.0f;
+            squareVertices[starting_idx + 2] = static_cast<GLfloat>(j);
+            squareVertices[starting_idx + 3] = R(255);
+            squareVertices[starting_idx + 4] = G(255);
+            squareVertices[starting_idx + 5] = B(255);
         }
     }
     half = n_side_edges * n_side_vertices;
@@ -91,7 +90,7 @@ void Grid::sendGridsToOpenGL(void)
             squareIndices[starting_idx + 1] = j + (i + 1) * n_side_vertices;
         }
     }
-    _sendGrid(_GRID_SQUARE, &vboID, &eboID, squares, sizeof(squares), squareIndices, sizeof(squareIndices));
+    _sendGrid(_GRID_SQUARE, &vboID, &eboID, squareVertices, sizeof(squareVertices), squareIndices, sizeof(squareIndices));
 }
 
 void Grid::_sendGrid(GLuint gridID, GLuint* vboID, GLuint* eboID, const GLfloat* data, GLint dataSize, const GLuint* indices, GLint indexSize)
@@ -115,7 +114,7 @@ void Grid::_sendGrid(GLuint gridID, GLuint* vboID, GLuint* eboID, const GLfloat*
     _gridInfo[gridID].vertexCount = indexSize / sizeof(GLuint);
 }
 
-void Grid::drawGrids(glm::mat4 viewMatrix, glm::mat4 projectionMatrix, Camera camera)
+void Grid::draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix, Camera camera)
 {
     _gridShader.use();
     _gridShader.setMat4("viewMatrix", viewMatrix);

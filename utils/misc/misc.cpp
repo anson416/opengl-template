@@ -25,13 +25,11 @@ int randint(int a, int b)
     return std::rand() % (b - a + 1) + a;
 }
 
+/* Load OBJ file (cannot load all OBJ files) */
 Model loadOBJ(const char* objPath)
 {
-	// function to load the obj file
-	// Note: this simple function cannot load all obj files.
-
 	struct V {
-		// struct for identify if a vertex has showed up
+		/* Struct for identify if a vertex has showed up */
 		unsigned int index_position, index_uv, index_normal;
 		bool operator == (const V& v) const {
 			return index_position == v.index_position && index_uv == v.index_uv && index_normal == v.index_normal;
@@ -56,7 +54,7 @@ Model loadOBJ(const char* objPath)
 
 	std::ifstream file(objPath);
 
-	// Check for Error
+	/* Check for error */
 	if (file.fail()) {
 		std::cerr << "ERR: Failed to load " << objPath << std::endl;
 		exit(1);
@@ -69,32 +67,28 @@ Model loadOBJ(const char* objPath)
         if(line_vec.size() == 0)
             continue;
 
-		// process the object file
+		/* Process the OBJ file */
 		const char *lineHeader=line_vec[0].c_str();
 
-		if (strcmp(lineHeader, "v") == 0) {
-			// geometric vertices
-            //std::assert(line_vec.size()==4);
+		if (strcmp(lineHeader, "v") == 0) {  /* Geometric vertices */
+            // std::assert(line_vec.size() == 4);
 			glm::vec3 position = glm::vec3(std::atof(line_vec[1].c_str()), std::atof(line_vec[2].c_str()), std::atof(line_vec[3].c_str()));
 			temp_positions.push_back(position);
 		}
-		else if (strcmp(lineHeader, "vt") == 0) {
-			// texture coordinates
-            //std::assert(line_vec.size()==3);
+		else if (strcmp(lineHeader, "vt") == 0) {  /* Texture coordinates */
+            // std::assert(line_vec.size() == 3);
 			glm::vec2 uv = glm::vec2(std::atof(line_vec[1].c_str()), std::atof(line_vec[2].c_str()));
 			temp_uvs.push_back(uv);
 		}
-		else if (strcmp(lineHeader, "vn") == 0) {
-			// vertex normals
-            //std::assert(line_vec.size()==4);
+		else if (strcmp(lineHeader, "vn") == 0) {  /* Vertex normals */
+            // std::assert(line_vec.size() == 4);
 			glm::vec3 normal = glm::vec3(std::atof(line_vec[1].c_str()), std::atof(line_vec[2].c_str()), std::atof(line_vec[3].c_str()));
 			temp_normals.push_back(normal);
 		}
-		else if (strcmp(lineHeader, "f") == 0) {
-			// Face elements
-            //std::assert((line_vec.size()==4 || line_vec.size()==5));
-            int n =line_vec.size()-1;
-            if(n!=3 && n!=4) {
+		else if (strcmp(lineHeader, "f") == 0) {  /* Face elements */
+            // std::assert((line_vec.size() == 4 || line_vec.size() == 5));
+            int n = line_vec.size() - 1;
+            if(n != 3 && n != 4) {
                 std::cerr << "ERR: There may exist some errors while loading the OBJ." << std::endl;
                 std::cerr << "     Error content: [" << line << "]" << std::endl;
                 std::cerr << "     Can only handle triangles or quads in OBJ for now." << std::endl;
@@ -106,9 +100,9 @@ Model loadOBJ(const char* objPath)
                 std::stringstream ss(line_vec[i+1]);
                 std::string item;
                 char delim='/';
-                getline(ss, item, delim); int ip=std::atoi(item.c_str());
-                getline(ss, item, delim); int it=std::atoi(item.c_str());
-                getline(ss, item, delim); int in=std::atoi(item.c_str());
+                getline(ss, item, delim); int ip = std::atoi(item.c_str());
+                getline(ss, item, delim); int it = std::atoi(item.c_str());
+                getline(ss, item, delim); int in = std::atoi(item.c_str());
                 vertices[i].index_position = ip;
                 vertices[i].index_uv = it;
                 vertices[i].index_normal = in;
@@ -116,8 +110,7 @@ Model loadOBJ(const char* objPath)
             
             std::vector<int> idxs;
 			for (int i = 0; i < n; i++) {
-				if (temp_vertices.find(vertices[i]) == temp_vertices.end()) {
-					// the vertex never shows before
+				if (temp_vertices.find(vertices[i]) == temp_vertices.end()) {  /* The vertex is new */
 					Vertex vertex;
 					vertex.pos = temp_positions[vertices[i].index_position - 1];
 					vertex.uv = temp_uvs[vertices[i].index_uv - 1];
@@ -128,18 +121,17 @@ Model loadOBJ(const char* objPath)
 					temp_vertices[vertices[i]] = num_vertices;
 					num_vertices += 1;
 				}
-				else {
-					// reuse the existing vertex
+				else {  /* Reuse existing vertex */
 					unsigned int index = temp_vertices[vertices[i]];
                     idxs.push_back(index);
 				}
-			} // for
-            if(n==3) {
+			}
+            if(n == 3) {
                 model.indices.push_back(idxs[0]);
                 model.indices.push_back(idxs[1]);
                 model.indices.push_back(idxs[2]);
             }
-            else {   // split a quad into two triangles
+            else {  /* Split a quad into two triangles */
                 model.indices.push_back(idxs[0]);
                 model.indices.push_back(idxs[1]);
                 model.indices.push_back(idxs[2]);
@@ -148,14 +140,12 @@ Model loadOBJ(const char* objPath)
                 model.indices.push_back(idxs[2]);
                 model.indices.push_back(idxs[3]);
             }
-		} // else if
-		else {
-			// skip it. it's not a vertex, texture coordinate, normal or face
+		}
+		else {  /* Skip it. It is not a vertex, texture coordinate, normal nor face. */
             // std::cout << "INF: Skipped: [" << line << "]" << std::endl;
 		}
 	}
-    // NOTE: vertices with the same position but different uv or normal
-    // are counted as different vertices during the OBJ loading
+    /* NOTE: vertices with the same position but different uv or normal are counted as different vertices during OBJ loading */
 	// std::cout << "INF: There are " << num_vertices << " vertices and " << model.indices.size() / 3 << " triangles in the OBJ.\n" << std::endl;
     
 	return model;

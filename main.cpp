@@ -2,19 +2,16 @@
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
 
 #include "camera/camera.h"
 #include "grid/grid.h"
 #include "misc/misc.h"
 #include "shader/shader.h"
+#include "skybox/skybox.h"
 #include "texture/texture.h"
 
 #include <iostream>
-#include <fstream>
 #include <vector>
-#include <map>
-#include <cmath>
 
 /* ----- Modify macros ----- */
 #define TITLE "OpenGL Template"
@@ -28,6 +25,7 @@
 enum Object {
     /* ----- Add objects ----- */
     SPHERE,
+    IRON_MAN,
     /* ----------------------- */
     OBJECT_COUNT,
 };
@@ -35,12 +33,13 @@ enum Object {
 struct ObjectInfo {
     GLuint vaoID;
     GLsizei vertexCount;
-    Texture texture;
+    Texture tex_diffuse, tex_specular;
 };
 ObjectInfo* objectInfo;
 
 Shader textureShader;
 Grid grid;
+Skybox skybox;
 
 const GLfloat far = static_cast<GLfloat>(FAR);
 
@@ -58,8 +57,8 @@ GLboolean cursorDisabled = GL_TRUE;
 /* ----- Define function prototypes ----- */
 void paintGL(void);
 void sendObjectsToOpenGL(void);
-void sendObject(GLuint objectID, const char* objPath, GLuint* vboID, GLuint* eboID);
 void initializeGL(void);
+void sendObject(GLuint objectID, const char* objPath, GLuint* vboID, GLuint* eboID);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void smoothKeyCallback(void);
@@ -155,7 +154,7 @@ void paintGL(void)
     glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera.getFOV()), static_cast<GLfloat>(scrWidth) / static_cast<GLfloat>(scrHeight), 0.01f, static_cast<GLfloat>(FAR));
 
     if (showGrid)
-        grid.drawGrids(viewMatrix, projectionMatrix, camera);
+        grid.draw(viewMatrix, projectionMatrix, camera);
 
     textureShader.use();
     textureShader.setMat4("viewMatrix", viewMatrix);
@@ -163,28 +162,60 @@ void paintGL(void)
     textureShader.setVec3("eyePosWorld", camera.getPos());
 
     /* ----- Modify texture shader ----- */
+    glm::vec3 pointLightPos = glm::vec3(0.0f, 8.0f, 10.0f);
+
     textureShader.setBool("useBlinn", GL_TRUE);
     textureShader.setVec3("emissionK", glm::vec3(0.0f));
     textureShader.setVec3("ambientK", glm::vec3(0.1f));
-    textureShader.setVec3("ambientIntensity", glm::vec3(1.0f));
     textureShader.setVec3("pointLights[0].light.diffuseK", glm::vec3(0.4f));
     textureShader.setVec3("pointLights[0].light.specularK", glm::vec3(0.5f));
-    textureShader.setVec3("pointLights[0].light.intensity", glm::vec3(3.0f));
-    textureShader.setInt("pointLights[0].light.highlight", 64);
-    textureShader.setVec3("pointLights[0].pos", glm::vec3(10.0f, 20.0f, 0.0f));
-    textureShader.setFloat("pointLights[0].a", 1.0f);
-    textureShader.setFloat("pointLights[0].b", 0.01f);
-    textureShader.setFloat("pointLights[0].c", 0.001f);
+    textureShader.setVec3("pointLights[0].light.intensity", glm::vec3(5.0f));
+    textureShader.setVec3("pointLights[0].pos", pointLightPos);
+    textureShader.setFloat("pointLights[0].attenuation.a", 1.0f);
+    textureShader.setFloat("pointLights[0].attenuation.b", 0.01f);
+    textureShader.setFloat("pointLights[0].attenuation.c", 0.001f);
+    textureShader.setVec3("dirLights[0].light.diffuseK", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[0].light.specularK", glm::vec3(0.5f));
+    textureShader.setVec3("dirLights[0].light.intensity", glm::vec3(2.0f));
+    textureShader.setVec3("dirLights[0].dir", glm::vec3(0.0f, 0.0f, 1.0f));
+    textureShader.setVec3("dirLights[1].light.diffuseK", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[1].light.specularK", glm::vec3(0.5f));
+    textureShader.setVec3("dirLights[1].light.intensity", glm::vec3(2.0f));
+    textureShader.setVec3("dirLights[1].dir", glm::vec3(-1.0f, 0.0f, 0.0f));
+    textureShader.setVec3("dirLights[2].light.diffuseK", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[2].light.specularK", glm::vec3(0.5f));
+    textureShader.setVec3("dirLights[2].light.intensity", glm::vec3(2.0f));
+    textureShader.setVec3("dirLights[2].dir", glm::vec3(1.0f, 0.0f, 0.0f));
     /* --------------------------------- */
 
-    /* ----- Draw ----- */
-    glBindVertexArray(objectInfo[SPHERE].vaoID);
-    objectInfo[SPHERE].texture.bind(0);
-    textureShader.setInt("textureSampler", 0);
+    /* ----- Draw non-luminous objects ----- */
+    glBindVertexArray(objectInfo[IRON_MAN].vaoID);
+    objectInfo[IRON_MAN].tex_diffuse.bind(0);
+    textureShader.setInt("material.diffuse", 0);
+    objectInfo[IRON_MAN].tex_specular.bind(1);
+    textureShader.setInt("material.specular", 1);
+    textureShader.setFloat("material.shininess", 64);
     modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
     textureShader.setMat4("modelMatrix", modelMatrix);
+    glDrawElements(GL_TRIANGLES, objectInfo[IRON_MAN].vertexCount, GL_UNSIGNED_INT, 0);
+    /* ------------------------------------- */
+
+    textureShader.setVec3("emissionK", glm::vec3(1.0f));
+    
+    /* ----- Draw luminous objects ----- */
+    glBindVertexArray(objectInfo[SPHERE].vaoID);
+    objectInfo[SPHERE].tex_diffuse.bind(0);
+    textureShader.setInt("material.diffuse", 0);
+    objectInfo[SPHERE].tex_specular.bind(1);
+    textureShader.setInt("material.specular", 1);
+    textureShader.setFloat("material.shininess", 32);
+    modelMatrix = glm::translate(glm::mat4(1.0f), pointLightPos);
+    modelMatrix = glm::scale(modelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
+    textureShader.setMat4("modelMatrix", modelMatrix);
     glDrawElements(GL_TRIANGLES, objectInfo[SPHERE].vertexCount, GL_UNSIGNED_INT, 0);
-    /* ---------------- */
+    /* --------------------------------- */
+
+    skybox.draw(viewMatrix, projectionMatrix);
 }
 
 void sendObjectsToOpenGL(void)
@@ -192,9 +223,46 @@ void sendObjectsToOpenGL(void)
     GLuint vboID, eboID;
 
     /* ----- Load objects and textures ----- */
+    /* Credit: https://github.com/melfm/openGL-shading-texture/tree/master */
     sendObject(SPHERE, "resources/sphere/sphere.obj", &vboID, &eboID);
-    objectInfo[SPHERE].texture.setupTexture("resources/sphere/sphere.jpg");
+    objectInfo[SPHERE].tex_diffuse.setupTexture("resources/sphere/sphere_diffuse.jpg");
+    objectInfo[SPHERE].tex_specular.setupTexture("resources/sphere/sphere_specular.jpg");
+
+    /* Credit: https://sketchfab.com/3d-models/iron-man-rig-a921a8cac309424e939aee1d31fa28c0 */
+    sendObject(IRON_MAN, "resources/iron-man/iron-man.obj", &vboID, &eboID);
+    objectInfo[IRON_MAN].tex_diffuse.setupTexture("resources/iron-man/iron-man_diffuse.png");
+    objectInfo[IRON_MAN].tex_specular.setupTexture("resources/iron-man/iron-man_specular.png");
     /* ------------------------------------- */
+}
+
+void initializeGL(void)
+{
+    textureShader.setupShader("shaders/texture/texture.vs", "shaders/texture/texture.fs");
+
+    grid.setupGrid("shaders/grid/grid.vs", "shaders/grid/grid.fs", far);
+    grid.sendGridsToOpenGL();
+
+    /* Credit: https://learnopengl.com/Advanced-OpenGL/Cubemaps */
+    const std::vector<std::string> skyboxTexPaths = {
+        "resources/skybox/right.jpg",
+        "resources/skybox/left.jpg",
+        "resources/skybox/top.jpg",
+        "resources/skybox/bottom.jpg",
+        "resources/skybox/front.jpg",
+        "resources/skybox/back.jpg",
+    };
+    skybox.setupSkybox("shaders/skybox/skybox.vs", "shaders/skybox/skybox.fs", skyboxTexPaths);
+
+    sendObjectsToOpenGL();
+
+    /* Customize 1D and 2D objects */
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(10.0f);
+    glLineWidth(1.5f);
+    
+    glEnable(GL_DEPTH_TEST);   /* Realize occlusion */
+    glEnable(GL_CULL_FACE);    /* Enable face culling */
+    glEnable(GL_MULTISAMPLE);  /* Enable MSAA */
 }
 
 void sendObject(GLuint objectID, const char* objPath, GLuint* vboID, GLuint* eboID)
@@ -220,24 +288,6 @@ void sendObject(GLuint objectID, const char* objPath, GLuint* vboID, GLuint* ebo
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
     
     objectInfo[objectID].vertexCount = (GLsizei)obj.indices.size();
-}
-
-void initializeGL(void)
-{
-    textureShader.setupShader("shaders/texture/texture.vs", "shaders/texture/texture.fs");
-    grid.setupGrid("shaders/grid/grid.vs", "shaders/grid/grid.fs", far);
-    grid.sendGridsToOpenGL();
-
-    sendObjectsToOpenGL();
-
-    /* Customize 1D and 2D objects */
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(10.0f);
-    glLineWidth(1.5f);
-    
-    glEnable(GL_DEPTH_TEST);   /* Realize occlusion */
-    glEnable(GL_CULL_FACE);    /* Enable face culling */
-    glEnable(GL_MULTISAMPLE);  /* Enable MSAA */
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)

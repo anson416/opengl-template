@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GL/glew.h"
+#include "glm/glm.hpp"
 
 #include "camera/camera.h"
 #include "shader/shader.h"
@@ -11,7 +12,7 @@ public:
     ~Grid(void);
     void setupGrid(const char* vertexPath, const char* fragmentPath, GLfloat far);
     void sendGridsToOpenGL(void);
-    void drawGrids(glm::mat4 viewMatrix, glm::mat4 projectionMatrix, Camera camera);
+    void draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix, Camera camera);
 
 private:
     enum _Component {
