@@ -42,22 +42,21 @@ struct SpotLight {
     float c;
 };
 
-in vec3 vertexPositionWorld;
+in vec3 vertexPosWorld;
 in vec3 normalWorld;
 in vec2 UV;
 
 out vec4 FragColor;
 
-uniform vec3 eyePositionWorld;
-
+uniform vec3 eyePosWorld;
+uniform bool useBlinn;
 uniform vec3 emissionK;
 uniform vec3 ambientK;
 uniform vec3 ambientIntensity;
-uniform bool useBlinn;
 uniform PointLight pointLights[N_POINT_LIGHTS];
-uniform DirLight dirLights[N_DIR_LIGHTS];
-uniform SpotLight spotLights[N_SPOT_LIGHTS];
-uniform sampler2D myTextureSampler0;
+// uniform DirLight dirLights[N_DIR_LIGHTS];
+// uniform SpotLight spotLights[N_SPOT_LIGHTS];
+uniform sampler2D textureSampler;
 
 vec3 calPointLight(PointLight light, vec3 normal, vec3 vertexPos, vec3 viewDir);
 vec3 calDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -66,17 +65,17 @@ vec3 calSpotLight(SpotLight light, vec3 normal, vec3 vertexPos, vec3 viewDir);
 void main()
 {
     int i;
-    vec3 viewDir = normalize(eyePositionWorld - vertexPositionWorld);
+    vec3 viewDir = normalize(eyePosWorld - vertexPosWorld);
     
     vec3 finalLight = emissionK + ambientK * ambientIntensity;
     for (i = 0; i < N_POINT_LIGHTS; i++)
-        finalLight += calPointLight(pointLights[i], normalWorld, vertexPositionWorld, viewDir);
-    for (i = 0; i < N_DIR_LIGHTS; i++)
-        finalLight += calDirLight(dirLights[i], normalWorld, viewDir);
-    for (i = 0; i < N_SPOT_LIGHTS; i++)
-        finalLight += calSpotLight(spotLights[i], normalWorld, vertexPositionWorld, viewDir);
+        finalLight += calPointLight(pointLights[i], normalWorld, vertexPosWorld, viewDir);
+    // for (i = 0; i < N_DIR_LIGHTS; i++)
+    //     finalLight += calDirLight(dirLights[i], normalWorld, viewDir);
+    // for (i = 0; i < N_SPOT_LIGHTS; i++)
+    //     finalLight += calSpotLight(spotLights[i], normalWorld, vertexPosWorld, viewDir);
     
-    FragColor = vec4(texture(myTextureSampler0, UV).rgb * finalLight, 1.0f);
+    FragColor = vec4(texture(textureSampler, UV).rgb * finalLight, 1.0f);
 }
 
 vec3 calPointLight(PointLight light, vec3 normal, vec3 vertexPos, vec3 viewDir)
@@ -88,8 +87,15 @@ vec3 calPointLight(PointLight light, vec3 normal, vec3 vertexPos, vec3 viewDir)
     vec3 diffuse = light.light.diffuseK * diff;
     
     /* Specular */
-    vec3 specDir = useBlinn ? normalize(lightDir + viewDir) : reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, specDir), 0.0f), light.light.highlight);
+    float spec = 0.0f;
+    if (useBlinn) {
+        vec3 halfwayDir = normalize(lightDir + viewDir);
+        spec = pow(max(dot(normal, halfwayDir), 0.0f), light.light.highlight);
+    }
+    else {
+        vec3 reflectDir = reflect(-lightDir, normal);
+        spec = pow(max(dot(viewDir, reflectDir), 0.0f), light.light.highlight);
+    }
     vec3 specular = light.light.specularK * spec;
     
     /* Attenuate */
@@ -132,7 +138,7 @@ vec3 calSpotLight(SpotLight light, vec3 normal, vec3 vertexPos, vec3 viewDir)
     float dist = length(light.pos - vertexPos);
     float attenuation = min(1.0f / (light.a + light.b * dist + light.c * pow(dist, 2)), 1.0f);
     
-    // spotlight intensity
+    /* Spotlight intensity */
     float theta = dot(lightDir, normalize(-light.dir));
     float epsilon = light.cutOff - light.outerCutOff;
     float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);

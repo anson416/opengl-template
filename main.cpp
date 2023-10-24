@@ -6,8 +6,9 @@
 
 #include "camera/camera.h"
 #include "grid/grid.h"
-#include "shader/shader.h"
 #include "misc/misc.h"
+#include "shader/shader.h"
+#include "texture/texture.h"
 
 #include <iostream>
 #include <fstream>
@@ -15,26 +16,26 @@
 #include <map>
 #include <cmath>
 
-/* ----- Modify macros here ----- */
+/* ----- Modify macros ----- */
 #define TITLE "OpenGL Template"
 #define SCR_WIDTH  800
 #define SCR_HEIGHT 600
 #define FAR 100
-/* ------------------------------ */
+/* ------------------------- */
 
 #define N_GLFW_KEYS 348
 
 enum Object {
-    /* ----- Add objects here ----- */
-
-    /* ---------------------------- */
+    /* ----- Add objects ----- */
+    SPHERE,
+    /* ----------------------- */
     OBJECT_COUNT,
 };
 
 struct ObjectInfo {
     GLuint vaoID;
     GLsizei vertexCount;
-    GLuint textureID;
+    Texture texture;
 };
 ObjectInfo* objectInfo;
 
@@ -51,21 +52,21 @@ GLint scrHeight = SCR_HEIGHT;
 GLboolean keys[N_GLFW_KEYS];
 GLboolean showGrid = GL_FALSE;
 
-Camera camera(scrWidth, scrHeight, glm::vec3(2.0f), glm::vec3(1.0f, 0.0f, 1.0f));
+Camera camera(scrWidth, scrHeight, glm::vec3(0.0f, 3.0f, 8.0f), glm::vec3(0.0f, -0.3f, -1.0f));
 GLboolean cursorDisabled = GL_TRUE;
 
-/* ----- Function prototypes ----- */
-void sendObject(void);
-void sendObjectsToOpenGL(void);
-void initializeGL(void);
+/* ----- Define function prototypes ----- */
 void paintGL(void);
+void sendObjectsToOpenGL(void);
+void sendObject(GLuint objectID, const char* objPath, GLuint* vboID, GLuint* eboID);
+void initializeGL(void);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void smoothKeyCallback(void);
 void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-/* ------------------------------- */
+/* -------------------------------------- */
 
 int main(int argc, char* argv[])
 {
@@ -125,7 +126,7 @@ int main(int argc, char* argv[])
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window)) {
-        paintGL();  /* Render here */
+        paintGL();  /* Render */
         glfwSwapBuffers(window);  /* Swap front and back buffers */
         glfwPollEvents();  /* Poll for and process events */
     }
@@ -136,34 +137,6 @@ int main(int argc, char* argv[])
     glfwTerminate();
 
     return 0;
-}
-
-void sendObject(void)
-{
-
-}
-
-void sendObjectsToOpenGL(void)
-{
-
-}
-
-void initializeGL(void)
-{
-    textureShader.setupShader("shaders/texture/texture.vs", "shaders/texture/texture.fs");
-    grid.setupGrid("shaders/grid/grid.vs", "shaders/grid/grid.fs", far);
-    grid.sendGridsToOpenGL();
-
-    sendObjectsToOpenGL();
-
-    /* Customize 1D and 2D objects */
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(10.0f);
-    glLineWidth(1.5f);
-    
-    glEnable(GL_DEPTH_TEST);   /* Realize occlusion */
-    glEnable(GL_CULL_FACE);    /* Enable face culling */
-    glEnable(GL_MULTISAMPLE);  /* Enable MSAA */
 }
 
 void paintGL(void)
@@ -184,9 +157,87 @@ void paintGL(void)
     if (showGrid)
         grid.drawGrids(viewMatrix, projectionMatrix, camera);
 
-    /* ----- Draw here ----- */
+    textureShader.use();
+    textureShader.setMat4("viewMatrix", viewMatrix);
+    textureShader.setMat4("projectionMatrix", projectionMatrix);
+    textureShader.setVec3("eyePosWorld", camera.getPos());
 
-    /* --------------------- */
+    /* ----- Modify texture shader ----- */
+    textureShader.setBool("useBlinn", GL_TRUE);
+    textureShader.setVec3("emissionK", glm::vec3(0.0f));
+    textureShader.setVec3("ambientK", glm::vec3(0.1f));
+    textureShader.setVec3("ambientIntensity", glm::vec3(1.0f));
+    textureShader.setVec3("pointLights[0].light.diffuseK", glm::vec3(0.4f));
+    textureShader.setVec3("pointLights[0].light.specularK", glm::vec3(0.5f));
+    textureShader.setVec3("pointLights[0].light.intensity", glm::vec3(3.0f));
+    textureShader.setInt("pointLights[0].light.highlight", 64);
+    textureShader.setVec3("pointLights[0].pos", glm::vec3(10.0f, 20.0f, 0.0f));
+    textureShader.setFloat("pointLights[0].a", 1.0f);
+    textureShader.setFloat("pointLights[0].b", 0.01f);
+    textureShader.setFloat("pointLights[0].c", 0.001f);
+    /* --------------------------------- */
+
+    /* ----- Draw ----- */
+    glBindVertexArray(objectInfo[SPHERE].vaoID);
+    objectInfo[SPHERE].texture.bind(0);
+    textureShader.setInt("textureSampler", 0);
+    modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
+    textureShader.setMat4("modelMatrix", modelMatrix);
+    glDrawElements(GL_TRIANGLES, objectInfo[SPHERE].vertexCount, GL_UNSIGNED_INT, 0);
+    /* ---------------- */
+}
+
+void sendObjectsToOpenGL(void)
+{
+    GLuint vboID, eboID;
+
+    /* ----- Load objects and textures ----- */
+    sendObject(SPHERE, "resources/sphere/sphere.obj", &vboID, &eboID);
+    objectInfo[SPHERE].texture.setupTexture("resources/sphere/sphere.jpg");
+    /* ------------------------------------- */
+}
+
+void sendObject(GLuint objectID, const char* objPath, GLuint* vboID, GLuint* eboID)
+{
+    Model obj = loadOBJ(objPath);
+    
+    glGenVertexArrays(1, &objectInfo[objectID].vaoID);
+    glBindVertexArray(objectInfo[objectID].vaoID);
+    
+    glGenBuffers(1, vboID);
+    glBindBuffer(GL_ARRAY_BUFFER, *vboID);
+    glBufferData(GL_ARRAY_BUFFER, obj.vertices.size() * sizeof(Vertex), &obj.vertices[0], GL_STATIC_DRAW);
+    
+    glGenBuffers(1, eboID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *eboID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj.indices.size() * sizeof(unsigned int), &obj.indices[0], GL_STATIC_DRAW);
+    
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, pos)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, uv)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+    
+    objectInfo[objectID].vertexCount = (GLsizei)obj.indices.size();
+}
+
+void initializeGL(void)
+{
+    textureShader.setupShader("shaders/texture/texture.vs", "shaders/texture/texture.fs");
+    grid.setupGrid("shaders/grid/grid.vs", "shaders/grid/grid.fs", far);
+    grid.sendGridsToOpenGL();
+
+    sendObjectsToOpenGL();
+
+    /* Customize 1D and 2D objects */
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(10.0f);
+    glLineWidth(1.5f);
+    
+    glEnable(GL_DEPTH_TEST);   /* Realize occlusion */
+    glEnable(GL_CULL_FACE);    /* Enable face culling */
+    glEnable(GL_MULTISAMPLE);  /* Enable MSAA */
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)

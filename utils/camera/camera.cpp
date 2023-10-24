@@ -15,11 +15,10 @@ Camera::Camera(GLint scrWidth, GLint scrHeight, glm::vec3 pos, glm::vec3 front)
     _cameraUp = glm::cross(_cameraRight, _cameraFront);
     _cameraSpeed = 5.0f;
     _yaw = glm::sign(_cameraFront.z) * glm::acos(glm::normalize(glm::vec3(_cameraFront.x, 0.0f, _cameraFront.z)).x);
-    std::cout << _yaw << std::endl;
-    _pitch = 0.0f;
+    _pitch = glm::sign(_cameraFront.y) * glm::acos(_cameraUp.y);
     _lastX = static_cast<GLfloat>(scrWidth) / 2.0f;
     _lastY = static_cast<GLfloat>(scrHeight) / 2.0f;
-    _sensitivity = 0.005f;
+    _sensitivity = 0.003f;
     _fov = 45.0f;
     _minFOV = 1.0f;
     _maxFOV = 45.0f;
@@ -41,13 +40,13 @@ void Camera::move(Camera::CameraMovement movement, GLfloat deltaTime)
         if (_useCameraSpace)
             _cameraPos += _cameraUp * movementSpeed;
         else
-            _cameraPos += glm::vec3(0.0f, 1.0f, 0.0f) * movementSpeed;
+            _cameraPos += glm::vec3(0.0f, movementSpeed, 0.0f);
     }
     if (movement == DOWNWARD) {
         if (_useCameraSpace)
             _cameraPos -= _cameraUp * movementSpeed;
         else
-            _cameraPos -= glm::vec3(0.0f, 1.0f, 0.0f) * movementSpeed;
+            _cameraPos -= glm::vec3(0.0f, movementSpeed, 0.0f);
     }
 }
 

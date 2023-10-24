@@ -25,13 +25,11 @@ public:
     void setFirstMouse(GLboolean value);
 
 private:
-    GLboolean _firstMouse = GL_TRUE;
+    const GLfloat _TWO_PI = glm::radians(360.0f), _MIN_PITCH = glm::radians(-89.0f), _MAX_PITCH = glm::radians(89.0f);
+    GLboolean _firstMouse;
     glm::vec3 _cameraPos, _cameraFront, _cameraUp, _cameraRight;
     GLfloat _cameraSpeed;
     GLfloat _yaw, _pitch;
-    const GLfloat _TWO_PI = glm::radians(360.0f);
-    const GLfloat _MIN_PITCH = glm::radians(-89.0f);
-    const GLfloat _MAX_PITCH = glm::radians(89.0f);
     GLfloat _lastX, _lastY;
     GLfloat _sensitivity;
     GLfloat _fov, _minFOV, _maxFOV;

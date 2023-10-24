@@ -151,7 +151,7 @@ Model loadOBJ(const char* objPath)
 		} // else if
 		else {
 			// skip it. it's not a vertex, texture coordinate, normal or face
-            std::cout << "INF: Skipped: [" << line << "]" << std::endl;
+            // std::cout << "INF: Skipped: [" << line << "]" << std::endl;
 		}
 	}
     // NOTE: vertices with the same position but different uv or normal

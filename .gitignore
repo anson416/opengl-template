@@ -1,5 +1,6 @@
 # User-defined
 .vscode/
+main
 
 # Prerequisites
 *.d
@@ -8,7 +9,7 @@
 *.slo
 *.lo
 *.o
-*.obj
+# *.obj
 
 # Precompiled Headers
 *.gch
