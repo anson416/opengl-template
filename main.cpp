@@ -13,19 +13,19 @@
 #include <iostream>
 #include <vector>
 
-/* ----- Modify macros ----- */
-#define TITLE "OpenGL Template"
-#define SCR_WIDTH  800
-#define SCR_HEIGHT 600
-#define FAR 100
-/* ------------------------- */
-
 #define N_GLFW_KEYS 348
+
+/* ----- Modify constants ----- */
+const GLchar TITLE[] = "OpenGL Template";
+const GLint SCR_WIDTH = 800;
+const GLint SCR_HEIGHT = 600;
+const GLfloat FAR = 1000.0f;
+/* ---------------------------- */
 
 enum Object {
     /* ----- Add objects ----- */
-    SPHERE,
     IRON_MAN,
+    SPHERE,
     /* ----------------------- */
     OBJECT_COUNT,
 };
@@ -33,15 +33,13 @@ enum Object {
 struct ObjectInfo {
     GLuint vaoID;
     GLsizei vertexCount;
-    Texture tex_diffuse, tex_specular;
+    Texture texDiffuse, texSpecular;
 };
 ObjectInfo* objectInfo;
 
 Shader textureShader;
 Grid grid;
 Skybox skybox;
-
-const GLfloat far = static_cast<GLfloat>(FAR);
 
 GLfloat deltaTime = 0.0f;  /* Time between current frame and last frame */
 GLfloat lastFrame = 0.0f;  /* Time of last frame */
@@ -51,8 +49,12 @@ GLint scrHeight = SCR_HEIGHT;
 GLboolean keys[N_GLFW_KEYS];
 GLboolean showGrid = GL_FALSE;
 
-Camera camera(scrWidth, scrHeight, glm::vec3(0.0f, 3.0f, 8.0f), glm::vec3(0.0f, -0.3f, -1.0f));
+Camera camera(scrWidth, scrHeight, glm::vec3(0.0f, 3.0f, 8.0f), glm::vec3(0.0f, 0.0f, -1.0f));
 GLboolean cursorDisabled = GL_TRUE;
+
+// GLboolean fullscreenEnabled = GL_FALSE;
+// GLint windowXPos, windowYPos;
+// GLint nonFullscreenWidth, nonFullscreenHeight;
 
 /* ----- Define function prototypes ----- */
 void paintGL(void);
@@ -151,7 +153,7 @@ void paintGL(void)
 
     glm::mat4 modelMatrix;
     glm::mat4 viewMatrix = camera.getViewMatrix();
-    glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera.getFOV()), static_cast<GLfloat>(scrWidth) / static_cast<GLfloat>(scrHeight), 0.01f, static_cast<GLfloat>(FAR));
+    glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera.getFOV()), static_cast<GLfloat>(scrWidth) / static_cast<GLfloat>(scrHeight), 0.01f, FAR);
 
     if (showGrid)
         grid.draw(viewMatrix, projectionMatrix, camera);
@@ -164,9 +166,18 @@ void paintGL(void)
     /* ----- Modify texture shader ----- */
     glm::vec3 pointLightPos = glm::vec3(0.0f, 8.0f, 10.0f);
 
+    textureShader.setInt("material.diffuse", 0);
+    textureShader.setInt("material.specular", 1);
+
     textureShader.setBool("useBlinn", GL_TRUE);
     textureShader.setVec3("emissionK", glm::vec3(0.0f));
     textureShader.setVec3("ambientK", glm::vec3(0.1f));
+
+    /*
+    Remember to modify the N_X_LIGHTS macors in texture.fs. 
+    Also disable for-loop(s) in main() if that particular kind of light is not used at all.
+    */
+    
     textureShader.setVec3("pointLights[0].light.diffuseK", glm::vec3(0.4f));
     textureShader.setVec3("pointLights[0].light.specularK", glm::vec3(0.5f));
     textureShader.setVec3("pointLights[0].light.intensity", glm::vec3(5.0f));
@@ -174,28 +185,53 @@ void paintGL(void)
     textureShader.setFloat("pointLights[0].attenuation.a", 1.0f);
     textureShader.setFloat("pointLights[0].attenuation.b", 0.01f);
     textureShader.setFloat("pointLights[0].attenuation.c", 0.001f);
+
+    /* Directional light from the front */
     textureShader.setVec3("dirLights[0].light.diffuseK", glm::vec3(0.4f));
     textureShader.setVec3("dirLights[0].light.specularK", glm::vec3(0.5f));
     textureShader.setVec3("dirLights[0].light.intensity", glm::vec3(2.0f));
     textureShader.setVec3("dirLights[0].dir", glm::vec3(0.0f, 0.0f, 1.0f));
+
+    /* Directional light from the back */
     textureShader.setVec3("dirLights[1].light.diffuseK", glm::vec3(0.4f));
     textureShader.setVec3("dirLights[1].light.specularK", glm::vec3(0.5f));
-    textureShader.setVec3("dirLights[1].light.intensity", glm::vec3(2.0f));
-    textureShader.setVec3("dirLights[1].dir", glm::vec3(-1.0f, 0.0f, 0.0f));
+    textureShader.setVec3("dirLights[1].light.intensity", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[1].dir", glm::vec3(0.0f, 0.0f, -1.0f));
+
+    /* Directional light from the left */
     textureShader.setVec3("dirLights[2].light.diffuseK", glm::vec3(0.4f));
     textureShader.setVec3("dirLights[2].light.specularK", glm::vec3(0.5f));
-    textureShader.setVec3("dirLights[2].light.intensity", glm::vec3(2.0f));
+    textureShader.setVec3("dirLights[2].light.intensity", glm::vec3(0.4f));
     textureShader.setVec3("dirLights[2].dir", glm::vec3(1.0f, 0.0f, 0.0f));
+
+    /* Directional light from the right */
+    textureShader.setVec3("dirLights[3].light.diffuseK", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[3].light.specularK", glm::vec3(0.5f));
+    textureShader.setVec3("dirLights[3].light.intensity", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[3].dir", glm::vec3(-1.0f, 0.0f, 0.0f));
+
+    /* Directional light from the top */
+    textureShader.setVec3("dirLights[4].light.diffuseK", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[4].light.specularK", glm::vec3(0.5f));
+    textureShader.setVec3("dirLights[4].light.intensity", glm::vec3(1.0f));
+    textureShader.setVec3("dirLights[4].dir", glm::vec3(0.0f, -1.0f, 0.0f));
+
+    /* Directional light from the bottom */
+    textureShader.setVec3("dirLights[5].light.diffuseK", glm::vec3(0.4f));
+    textureShader.setVec3("dirLights[5].light.specularK", glm::vec3(0.5f));
+    textureShader.setVec3("dirLights[5].light.intensity", glm::vec3(0.5f));
+    textureShader.setVec3("dirLights[5].dir", glm::vec3(0.0f, 1.0f, 0.0f));
     /* --------------------------------- */
 
     /* ----- Draw non-luminous objects ----- */
     glBindVertexArray(objectInfo[IRON_MAN].vaoID);
-    objectInfo[IRON_MAN].tex_diffuse.bind(0);
+    objectInfo[IRON_MAN].texDiffuse.bind(0);
     textureShader.setInt("material.diffuse", 0);
-    objectInfo[IRON_MAN].tex_specular.bind(1);
+    objectInfo[IRON_MAN].texSpecular.bind(1);
     textureShader.setInt("material.specular", 1);
     textureShader.setFloat("material.shininess", 64);
-    modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
+    modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 5.0f, 0.0f));
+    modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f, 10.0f, 10.0f));
     textureShader.setMat4("modelMatrix", modelMatrix);
     glDrawElements(GL_TRIANGLES, objectInfo[IRON_MAN].vertexCount, GL_UNSIGNED_INT, 0);
     /* ------------------------------------- */
@@ -204,10 +240,8 @@ void paintGL(void)
     
     /* ----- Draw luminous objects ----- */
     glBindVertexArray(objectInfo[SPHERE].vaoID);
-    objectInfo[SPHERE].tex_diffuse.bind(0);
-    textureShader.setInt("material.diffuse", 0);
-    objectInfo[SPHERE].tex_specular.bind(1);
-    textureShader.setInt("material.specular", 1);
+    objectInfo[SPHERE].texDiffuse.bind(0);
+    objectInfo[SPHERE].texSpecular.bind(1);
     textureShader.setFloat("material.shininess", 32);
     modelMatrix = glm::translate(glm::mat4(1.0f), pointLightPos);
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
@@ -223,27 +257,30 @@ void sendObjectsToOpenGL(void)
     GLuint vboID, eboID;
 
     /* ----- Load objects and textures ----- */
-    /* Credit: https://github.com/melfm/openGL-shading-texture/tree/master */
-    sendObject(SPHERE, "resources/sphere/sphere.obj", &vboID, &eboID);
-    objectInfo[SPHERE].tex_diffuse.setupTexture("resources/sphere/sphere_diffuse.jpg");
-    objectInfo[SPHERE].tex_specular.setupTexture("resources/sphere/sphere_specular.jpg");
-
     /* Credit: https://sketchfab.com/3d-models/iron-man-rig-a921a8cac309424e939aee1d31fa28c0 */
     sendObject(IRON_MAN, "resources/iron-man/iron-man.obj", &vboID, &eboID);
-    objectInfo[IRON_MAN].tex_diffuse.setupTexture("resources/iron-man/iron-man_diffuse.png");
-    objectInfo[IRON_MAN].tex_specular.setupTexture("resources/iron-man/iron-man_specular.png");
+    objectInfo[IRON_MAN].texDiffuse.setupTexture("resources/iron-man/iron-man_diffuse.png");
+    objectInfo[IRON_MAN].texSpecular.setupTexture("resources/iron-man/iron-man_specular.png");
+
+    /* Credit: https://github.com/melfm/openGL-shading-texture/tree/master */
+    sendObject(SPHERE, "resources/sphere/sphere.obj", &vboID, &eboID);
+    objectInfo[SPHERE].texDiffuse.setupTexture("resources/sphere/sphere_diffuse.jpg");
+    objectInfo[SPHERE].texSpecular.setupTexture("resources/sphere/sphere_specular.jpg");
     /* ------------------------------------- */
 }
 
 void initializeGL(void)
 {
+    /* Set up texture shader */
     textureShader.setupShader("shaders/texture/texture.vs", "shaders/texture/texture.fs");
 
-    grid.setupGrid("shaders/grid/grid.vs", "shaders/grid/grid.fs", far);
+    /* Set up grid mode */
+    grid.setupGrid("shaders/grid/grid.vs", "shaders/grid/grid.fs", FAR);
     grid.sendGridsToOpenGL();
 
-    /* Credit: https://learnopengl.com/Advanced-OpenGL/Cubemaps */
+    /* Set up skybox */
     const std::vector<std::string> skyboxTexPaths = {
+        /* Credit: https://learnopengl.com/Advanced-OpenGL/Cubemaps */
         "resources/skybox/right.jpg",
         "resources/skybox/left.jpg",
         "resources/skybox/top.jpg",
@@ -293,12 +330,8 @@ void sendObject(GLuint objectID, const char* objPath, GLuint* vboID, GLuint* ebo
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
-    
-    /* Ensure window width and height are saved after fullscreen mode is enabled */
-    // if (!fullscreenEnabled) {
-    //     windowWidth = width;
-    //     windowHeight = height;
-    // }
+    scrWidth = width;
+    scrHeight = height;
 }
 
 /* Set the Keyboard callback for the current window */
@@ -325,16 +358,20 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 //        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 //        const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
 //        GLFWwindow* currentWindow = glfwGetCurrentContext();
-//        
-//        firstMouse = true;
+       
+//        camera.setFirstMouse(GL_TRUE);
 //        if (!glfwGetWindowMonitor(currentWindow)) {
-//            fullscreenEnabled = true;
+//            fullscreenEnabled = GL_TRUE;
+//            nonFullscreenWidth = scrWidth;
+//            nonFullscreenHeight = scrHeight;
 //            glfwGetWindowPos(window, &windowXPos, &windowYPos);
 //            glfwSetWindowMonitor(currentWindow, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
 //        }
 //        else {
-//            glfwSetWindowMonitor(currentWindow, NULL, windowXPos, windowYPos, windowWidth, windowHeight, GLFW_DONT_CARE);
-//            fullscreenEnabled = false;
+//            glfwSetWindowMonitor(currentWindow, NULL, windowXPos, windowYPos, nonFullscreenWidth, nonFullscreenHeight, GLFW_DONT_CARE);
+//            scrWidth = nonFullscreenWidth;
+//            scrHeight = nonFullscreenHeight;
+//            fullscreenEnabled = GL_FALSE;
 //        }
 //    }
     

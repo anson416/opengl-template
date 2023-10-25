@@ -91,9 +91,29 @@ glm::vec3 Camera::getPos(void) const
     return _cameraPos;
 }
 
+glm::vec3 Camera::getFront(void) const
+{
+    return _cameraFront;
+}
+
+glm::vec3 Camera::getUp(void) const
+{
+    return _cameraUp;
+}
+
 GLfloat Camera::getFOV(void) const
 {
     return _fov;
+}
+
+GLfloat Camera::getYaw(void) const
+{
+    return _yaw;
+}
+
+GLfloat Camera::getPitch(void) const
+{
+    return _pitch;
 }
 
 void Camera::setFirstMouse(GLboolean value)

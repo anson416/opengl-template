@@ -19,7 +19,7 @@ void Grid::setupGrid(const char* vertexPath, const char* fragmentPath, GLfloat f
         exit(1);
     }
     _gridShader.setupShader(vertexPath, fragmentPath);
-    _far = far;
+    _far = MIN(far, 200.0f);
 }
 
 void Grid::sendGridsToOpenGL(void)

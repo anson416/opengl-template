@@ -6,6 +6,9 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <random>
+#include <cstring>
+#include <iterator>
 
 void showOpenGLInfo(void)
 {
@@ -23,6 +26,15 @@ void showOpenGLInfo(void)
 int randint(int a, int b)
 {
     return std::rand() % (b - a + 1) + a;
+}
+
+double randreal(double a, double b)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dis(a, b);
+    
+    return dis(gen);
 }
 
 /* Load OBJ file (cannot load all OBJ files) */
@@ -148,16 +160,18 @@ Model loadOBJ(const char* objPath)
     /* NOTE: vertices with the same position but different uv or normal are counted as different vertices during OBJ loading */
 	// std::cout << "INF: There are " << num_vertices << " vertices and " << model.indices.size() / 3 << " triangles in the OBJ.\n" << std::endl;
     
-	return model;
+    normalizeToUnitBbox(model.vertices);
+    
+    return model;
 }
 
 void calBboxAndCenter(const std::vector<Vertex>& verts)
 {
-    float INF=1e+6;
+    float INF = 1e+6;
     glm::vec3 p1(INF, INF, INF);
-    glm::vec3 p2=-p1;
+    glm::vec3 p2 = -p1;
 
-    for(int i=0; i<verts.size(); i++) {
+    for (int i = 0; i < verts.size(); i++) {
         p1.x = glm::min(p1.x, verts[i].pos.x);
         p1.y = glm::min(p1.y, verts[i].pos.y);
         p1.z = glm::min(p1.z, verts[i].pos.z);
@@ -167,19 +181,19 @@ void calBboxAndCenter(const std::vector<Vertex>& verts)
         p2.z = glm::max(p2.z, verts[i].pos.z);
     }
     
-    glm::vec3 center = 0.5f*(p1+p2);
-    glm::vec3 bbox = p2-p1;
+    glm::vec3 center = 0.5f * (p1 + p2);
+    glm::vec3 bbox = p2 - p1;
     printf("Center %f %f %f\n", center.x, center.y, center.z);
     printf("DX %f DY %f DZ %f\n", bbox.x, bbox.y, bbox.z);
 }
 
 void normalizeToUnitBbox(std::vector<Vertex>& verts)
 {
-    float INF=1e+6;
+    float INF = 1e+6;
     glm::vec3 p1(INF, INF, INF);
-    glm::vec3 p2=-p1;
+    glm::vec3 p2 = -p1;
 
-    for(int i=0; i<verts.size(); i++) {
+    for (int i = 0; i < verts.size(); i++) {
         p1.x = glm::min(p1.x, verts[i].pos.x);
         p1.y = glm::min(p1.y, verts[i].pos.y);
         p1.z = glm::min(p1.z, verts[i].pos.z);
@@ -189,10 +203,10 @@ void normalizeToUnitBbox(std::vector<Vertex>& verts)
         p2.z = glm::max(p2.z, verts[i].pos.z);
     }
     
-    glm::vec3 center = 0.5f*(p1+p2);
-    glm::vec3 bbox = p2-p1;
+    glm::vec3 center = 0.5f * (p1 + p2);
+    glm::vec3 bbox = p2 - p1;
 
-    float S=glm::max(glm::max(bbox.x, bbox.y), bbox.z);
-    for(int i=0; i<verts.size(); i++)
-        verts[i].pos = (verts[i].pos - center)/S; 
+    float S = glm::max(glm::max(bbox.x, bbox.y), bbox.z);
+    for(int i = 0; i < verts.size(); i++)
+        verts[i].pos = (verts[i].pos - center) / S; 
 }

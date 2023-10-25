@@ -32,6 +32,7 @@ struct Model {
 
 void showOpenGLInfo(void);
 int randint(int a, int b);
+double randreal(double a, double b);
 Model loadOBJ(const char* objPath);
 void calBboxAndCenter(const std::vector<Vertex>& verts);
 void normalizeToUnitBbox(std::vector<Vertex>& verts);

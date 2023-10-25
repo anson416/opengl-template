@@ -7,7 +7,7 @@ References: https://learnopengl.com/Lighting/Light-casters
 
 /* ----- Modify macros here ----- */
 #define N_POINT_LIGHTS 1
-#define N_DIR_LIGHTS 3
+#define N_DIR_LIGHTS 6
 #define N_SPOT_LIGHTS 1
 /* ------------------------------ */
 

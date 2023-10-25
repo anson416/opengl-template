@@ -21,7 +21,11 @@ public:
     void zoom(GLfloat yoffset);
     glm::mat4 getViewMatrix(void) const;
     glm::vec3 getPos(void) const;
+    glm::vec3 getFront(void) const;
+    glm::vec3 getUp(void) const;
     GLfloat getFOV(void) const;
+    GLfloat getYaw(void) const;
+    GLfloat getPitch(void) const;
     void setFirstMouse(GLboolean value);
 
 private:
