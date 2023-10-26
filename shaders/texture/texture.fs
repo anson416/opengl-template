@@ -14,6 +14,7 @@ References: https://learnopengl.com/Lighting/Light-casters
 struct Material {
     sampler2D diffuse;
     sampler2D specular;
+    sampler2D normal;
     float shininess;
 };
 
@@ -67,19 +68,21 @@ uniform DirLight dirLights[N_DIR_LIGHTS];
 vec3 calPointLight(PointLight light, vec3 normal, vec3 vertexPos, vec3 viewDir);
 vec3 calDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec3 calSpotLight(SpotLight light, vec3 normal, vec3 vertexPos, vec3 viewDir);
+vec3 getNormalFromMap(void);
 
-void main()
+void main(void)
 {
     int i;
     vec3 viewDir = normalize(eyePosWorld - vertexPosWorld);
+    vec3 normal = getNormalFromMap();
     
     vec3 result = emissionK + ambientK * texture(material.diffuse, UV).rgb;
     for (i = 0; i < N_POINT_LIGHTS; i++)
-        result += calPointLight(pointLights[i], normalWorld, vertexPosWorld, viewDir);
+        result += calPointLight(pointLights[i], normal, vertexPosWorld, viewDir);
     for (i = 0; i < N_DIR_LIGHTS; i++)
-        result += calDirLight(dirLights[i], normalWorld, viewDir);
+        result += calDirLight(dirLights[i], normal, viewDir);
     // for (i = 0; i < N_SPOT_LIGHTS; i++)
-    //     result += calSpotLight(spotLights[i], normalWorld, vertexPosWorld, viewDir);
+    //     result += calSpotLight(spotLights[i], normal, vertexPosWorld, viewDir);
     
     FragColor = vec4(result, 1.0f);
 }
@@ -164,4 +167,21 @@ vec3 calSpotLight(SpotLight light, vec3 normal, vec3 vertexPos, vec3 viewDir)
     float cutoff_intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
     
     return attenuation * light.light.intensity * cutoff_intensity * (diffuse + specular);
+}
+
+vec3 getNormalFromMap(void)
+{
+    vec3 tangentNormal = texture(material.normal, UV).xyz * 2.0f - 1.0f;
+
+    vec3 Q1 = dFdx(vertexPosWorld);
+    vec3 Q2 = dFdy(vertexPosWorld);
+    vec2 st1 = dFdx(UV);
+    vec2 st2 = dFdy(UV);
+
+    vec3 n = normalize(normalWorld);
+    vec3 t = normalize(Q1 * st2.t - Q2 * st1.t);
+    vec3 b = -normalize(cross(n, t));
+    mat3 tbn = mat3(t, b, n);
+
+    return normalize(tbn * tangentNormal);
 }

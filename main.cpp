@@ -15,11 +15,15 @@
 
 #define N_GLFW_KEYS 348
 
-/* ----- Modify constants ----- */
+/* ----- Define macros ----- */
+
+/* ------------------------- */
+
+/* ----- Define constants ----- */
 const GLchar TITLE[] = "OpenGL Template";
 const GLint SCR_WIDTH = 800;
 const GLint SCR_HEIGHT = 600;
-const GLfloat FAR = 1000.0f;
+const GLfloat FAR = 100.0f;
 /* ---------------------------- */
 
 enum Object {
@@ -33,7 +37,7 @@ enum Object {
 struct ObjectInfo {
     GLuint vaoID;
     GLsizei vertexCount;
-    Texture texDiffuse, texSpecular;
+    Texture texDiffuse, texSpecular, texNormal;
 };
 ObjectInfo* objectInfo;
 
@@ -49,7 +53,7 @@ GLint scrHeight = SCR_HEIGHT;
 GLboolean keys[N_GLFW_KEYS];
 GLboolean showGrid = GL_FALSE;
 
-Camera camera(scrWidth, scrHeight, glm::vec3(0.0f, 3.0f, 8.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+Camera camera(scrWidth, scrHeight, glm::vec3(0.0f, 5.0f, 20.0f), glm::vec3(0.0f, 0.0f, -1.0f));
 GLboolean cursorDisabled = GL_TRUE;
 
 // GLboolean fullscreenEnabled = GL_FALSE;
@@ -168,6 +172,7 @@ void paintGL(void)
 
     textureShader.setInt("material.diffuse", 0);
     textureShader.setInt("material.specular", 1);
+    textureShader.setInt("material.normal", 2);
 
     textureShader.setBool("useBlinn", GL_TRUE);
     textureShader.setVec3("emissionK", glm::vec3(0.0f));
@@ -226,9 +231,8 @@ void paintGL(void)
     /* ----- Draw non-luminous objects ----- */
     glBindVertexArray(objectInfo[IRON_MAN].vaoID);
     objectInfo[IRON_MAN].texDiffuse.bind(0);
-    textureShader.setInt("material.diffuse", 0);
     objectInfo[IRON_MAN].texSpecular.bind(1);
-    textureShader.setInt("material.specular", 1);
+    objectInfo[IRON_MAN].texNormal.bind(2);
     textureShader.setFloat("material.shininess", 64);
     modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 5.0f, 0.0f));
     modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f, 10.0f, 10.0f));
@@ -236,12 +240,12 @@ void paintGL(void)
     glDrawElements(GL_TRIANGLES, objectInfo[IRON_MAN].vertexCount, GL_UNSIGNED_INT, 0);
     /* ------------------------------------- */
 
-    textureShader.setVec3("emissionK", glm::vec3(1.0f));
-    
     /* ----- Draw luminous objects ----- */
     glBindVertexArray(objectInfo[SPHERE].vaoID);
+    textureShader.setVec3("emissionK", glm::vec3(0.5f));
     objectInfo[SPHERE].texDiffuse.bind(0);
     objectInfo[SPHERE].texSpecular.bind(1);
+    objectInfo[SPHERE].texNormal.bind(2);
     textureShader.setFloat("material.shininess", 32);
     modelMatrix = glm::translate(glm::mat4(1.0f), pointLightPos);
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
@@ -261,11 +265,13 @@ void sendObjectsToOpenGL(void)
     sendObject(IRON_MAN, "resources/iron-man/iron-man.obj", &vboID, &eboID);
     objectInfo[IRON_MAN].texDiffuse.setupTexture("resources/iron-man/iron-man_diffuse.png");
     objectInfo[IRON_MAN].texSpecular.setupTexture("resources/iron-man/iron-man_specular.png");
+    objectInfo[IRON_MAN].texNormal.setupTexture("resources/iron-man/iron-man_normal.png");
 
     /* Credit: https://github.com/melfm/openGL-shading-texture/tree/master */
     sendObject(SPHERE, "resources/sphere/sphere.obj", &vboID, &eboID);
     objectInfo[SPHERE].texDiffuse.setupTexture("resources/sphere/sphere_diffuse.jpg");
     objectInfo[SPHERE].texSpecular.setupTexture("resources/sphere/sphere_specular.jpg");
+    objectInfo[SPHERE].texNormal.setupTexture("resources/defaults/flat_normal.jpg");
     /* ------------------------------------- */
 }
 

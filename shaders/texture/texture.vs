@@ -18,6 +18,6 @@ void main()
     gl_Position = projectionMatrix * viewMatrix * newPos;
     
     vertexPosWorld = newPos.xyz;
-    normalWorld = normalize((modelMatrix * vec4(normal, 0.0f)).xyz);
+    normalWorld = (modelMatrix * vec4(normal, 0.0f)).xyz;
     UV = vertexUV;
 }
