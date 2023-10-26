@@ -267,7 +267,7 @@ void sendObjectsToOpenGL(void)
     objectInfo[IRON_MAN].texSpecular.setupTexture("resources/iron-man/iron-man_specular.png");
     objectInfo[IRON_MAN].texNormal.setupTexture("resources/iron-man/iron-man_normal.png");
 
-    /* Credit: https://github.com/melfm/openGL-shading-texture/tree/master */
+    /* Credit: https://sketchfab.com/3d-models/perfect-sphere-to-apply-360-photo-texture-a4ae557105534d97ab942ab6310f0876 */
     sendObject(SPHERE, "resources/sphere/sphere.obj", &vboID, &eboID);
     objectInfo[SPHERE].texDiffuse.setupTexture("resources/sphere/sphere_diffuse.jpg");
     objectInfo[SPHERE].texSpecular.setupTexture("resources/sphere/sphere_specular.jpg");
